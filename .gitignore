@@ -1,0 +1,34 @@
+# This file contains the list of files/folders etc... to be ignored under Git
+*.png
+*.log
+*.pyc
+*.mwa
+*.efd
+*.hfd
+*.efe
+*.hfe
+*.pvd
+*.vtk
+*.pyc
+__pycache__/
+.idea/
+DebugScripts/__pycache__/
+DebugScripts/.idea/
+data/
+.vscode/
+.DS_Store
+desktop.ini
+
+# Cache files for sublime text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+# Workspace files are user-specific
+*.sublime-workspace
+*.sublime-project
+
+*.xml
+
+# Do not git mexfiles
+*.mexw64
+*.mexmaci64
