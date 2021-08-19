@@ -162,4 +162,4 @@ if __name__ == '__main__':
     msh.generateMesh(vPrObj, resolution)
     msh.plotMesh()
     print(msh.pointInCell(Point2D()))
-    print('Lenght of the mesh is {}'.format(len(msh)))
+    print('No. of cells in the mesh: {}'.format(len(msh)))

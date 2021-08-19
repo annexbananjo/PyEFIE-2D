@@ -1,47 +1,47 @@
 import copy
 import numpy as np
 from tqdm import tqdm
-from scipy.special import hankel2, jv
+from scipy import special
+from scipy import fft 
+from scipy.sparse.linalg import LinearOperator
 from math import pi
 from point2D import compute_distance
 from em_utils import get_impedance, get_k0
 
+#look at /Users/eattardo/Documents/CODE/pymwa/pysgav/sgav_precond.py
 
-class IEKernel():
-    """ Abstract class
-    """
-
-    def __init__(self, msh):
-        """ Init the kernel with mesh and the dielectric or contrast prop
-        """
-        self.dofs = len(msh)
-
-    def getDoFs(self):
-        return self.dofs
-
-    def assembleZmatRow(self, irow, msh):
-        raise NotImplementedError()
-
-    def assembleZmat(self, msh):
-        raise NotImplementedError()
-
-
-class InhomogeneousCylinderKernel(IEKernel):
+class InhomogeneousCylinderKernel(LinearOperator):
     """ A class for TM-Wave Scattering from Inhomogeneous Dielectric Cylinders: Volume EFIE 
     """
 
-    def __init__(self, msh, freq, dielProp):
-        """ Ini the kernel
+    def __init__(self, msh, freq, dielProp, dtype=np.complex):
+        """ Init the kernel
         """
-        IEKernel.__init__(self, msh)
 
-        self.eta = get_impedance(1.0)  # background is air / free space
-        self.k = get_k0(freq)
-        self.coef_mn = self.eta * pi * msh.an * 0.5 * jv(1, self.k * msh.an)
-        self.coef_mm = self.eta * pi * msh.an * \
-            0.5 * hankel2(1, self.k * msh.an)
+        self.dofs = len(msh)
+       
+        # Need to extend this from LinearOperator
+        self.explicit = False
+        self.shape = (self.dofs, self.dofs)
+        self.dtype = dtype
+
+        self.eta = get_impedance(epsrc=1.0)  # background is air / free space
+        self.kb = get_k0(freq) # k of background
         self.freq = freq
         self.prop = copy.copy(dielProp)  # build a swallow copy
+    #--------------------------------------------
+    
+    def computeZmn(kb, an, m, n, cm, cn):
+        """ Compute an entry for the Z matrix.
+            It can be self or off-diagonal entries depending on (m,n)
+        """
+        if m==n: #self term
+            return (1j*0.5)*(pi*an*kb*special.hankel2(1, kb*an) -2*1j)
+        else: # off-diagonal
+            dist = compute_distance(cm, cn)
+            return (1j*pi*kb*an*0.5)*special.j1(kb*an)*special.hankel2(0,kb*dist)
+    #--------------------------------------------
+
 
     def assembleZmatRow(self, irow, msh):
         """ Assemble one row of the impedance matrix"""
@@ -58,6 +58,7 @@ class InhomogeneousCylinderKernel(IEKernel):
                 Zrow[i] = self.coef_mn * \
                     hankel2(0, compute_distance(thisCell, msh.cells[i]))
         return Zrow
+    #--------------------------------------------
 
     def assembleZmat(self, msh):
         """ Assemble the impedance matrix
@@ -68,3 +69,10 @@ class InhomogeneousCylinderKernel(IEKernel):
             Z[i, :] = self.assembleZmatRow(i, msh)
         # Retunr the matrix
         return Z
+    #--------------------------------------------
+
+    
+    def getDoFs(self):
+        return self.dofs
+    #--------------------------------------------
+
