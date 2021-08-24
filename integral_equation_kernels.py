@@ -8,8 +8,6 @@ from math import pi
 from point2D import compute_distance
 from em_utils import get_impedance, get_k0
 
-#look at /Users/eattardo/Documents/CODE/pymwa/pysgav/sgav_precond.py
-
 class InhomogeneousCylinderKernel(LinearOperator):
     """ A class for TM-Wave Scattering from Inhomogeneous Dielectric Cylinders: Volume EFIE 
     """
@@ -31,9 +29,10 @@ class InhomogeneousCylinderKernel(LinearOperator):
         self.prop = copy.copy(dielProp)  # build a swallow copy
     #--------------------------------------------
     
-    def computeZmn(kb, an, m, n, cm, cn):
+    def __computeZmn(self, kb, an, m, n, cm, cn):
         """ Compute an entry for the Z matrix.
-            It can be self or off-diagonal entries depending on (m,n)
+            It can be self or off-diagonal entries depending on (m,n).
+            This function is private.
         """
         if m==n: #self term
             return (1j*0.5)*(pi*an*kb*special.hankel2(1, kb*an) -2*1j)
@@ -44,31 +43,27 @@ class InhomogeneousCylinderKernel(LinearOperator):
 
 
     def assembleZmatRow(self, irow, msh):
-        """ Assemble one row of the impedance matrix"""
+        """ Assemble one row of the impedance matrix
+        """
+        # an = 
+        # kb = 
+
         Zrow = np.zeros((self.getDoFs()), dtype=np.complex)
-        thisCell = msh.cells[irow]
-        # Start loop over the cells
-        for i in range(self.getDoFs()):
-            if i == irow:
-                # self term
-                Zrow[i] = self.coef_mm - 1j*self.eta * \
-                    self.prop[i] / (self.k * (self.prop[i] - 1.0))
-            else:
-                # off-diag
-                Zrow[i] = self.coef_mn * \
-                    hankel2(0, compute_distance(thisCell, msh.cells[i]))
+        for jcol in range(self.getDoFs()):
+            Zrow[jcol] = self.__computeZmn(kb, an, irow, jcol, msh.cells[irow], msh.cells[jcol])
+
         return Zrow
     #--------------------------------------------
 
     def assembleZmat(self, msh):
         """ Assemble the impedance matrix
         """
-        Z = np.zeros((self.getDoFs(), self.getDoFs()), dtype=np.complex)
+        Zmat = np.zeros((self.getDoFs(), self.getDoFs()), dtype=np.complex)
         print('Assembling the impedance matrix. . .')
-        for i in tqdm(range(self.getDoFs())):
-            Z[i, :] = self.assembleZmatRow(i, msh)
+        for irow in tqdm(range(self.getDoFs())):
+            Zmat[irow, :] = self.assembleZmatRow(irow, msh)
         # Retunr the matrix
-        return Z
+        return Zmat
     #--------------------------------------------
 
     

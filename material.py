@@ -74,5 +74,5 @@ def set_dielectric_properties_at_cells(msh, vecObj, vecMat, objToMatMap):
 if __name__ == '__main__':
     mat = Material()
     print(mat)
-    mat.setPermittivity(1e9)
+    mat.setPermittivity(freq=1e9)
     print(mat)
