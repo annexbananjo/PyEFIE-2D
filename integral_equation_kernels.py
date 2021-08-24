@@ -2,33 +2,48 @@ import copy
 import numpy as np
 from tqdm import tqdm
 from scipy import special
-from scipy import fft 
+from scipy import fft
 from scipy.sparse.linalg import LinearOperator
 from math import pi
 from point2D import compute_distance
-from em_utils import get_impedance, get_k0
+from em_utils import get_dielectric_wavenumber
+
+def computeContrast(epsrcBackground, epsrc):
+    """ Compute the contrast chi = (epsrc(r) - epsrcBackgroung) / epsrcBackground
+    """
+    N = len(epsrc)
+    chi = np.zeros((N), dtype=np.complex)
+    for i in range(N):
+        chi[i] = (epsrc[i] - epsrcBackground)/ epsrcBackground
+    return chi
+#-----------------------------------------------------------------------------------------
+
 
 class InhomogeneousCylinderKernel(LinearOperator):
-    """ A class for TM-Wave Scattering from Inhomogeneous Dielectric Cylinders: Volume EFIE 
+    """ A class for TM Wave Scattering from Inhomogeneous Dielectric Cylinders: Volume EFIE
     """
 
-    def __init__(self, msh, freq, dielProp, dtype=np.complex):
+    def __init__(self, msh, freq, epsrcBackground, epsrc, dtype=np.complex):
         """ Init the kernel
         """
-
         self.dofs = len(msh)
-       
+        self.nx = msh.nx
+        self.ny = msh.ny
+
         # Need to extend this from LinearOperator
         self.explicit = False
         self.shape = (self.dofs, self.dofs)
         self.dtype = dtype
 
-        self.eta = get_impedance(epsrc=1.0)  # background is air / free space
-        self.kb = get_k0(freq) # k of background
-        self.freq = freq
-        self.prop = copy.copy(dielProp)  # build a swallow copy
+        self.kb = get_dielectric_wavenumber(freq, epsrcBackground)  # k of background
+        self.chi = computeContrast(epsrcBackground, epsrc)
+
+        # Compute and store the FFT of the circulant Z-matrix
+        Zext = self.assembleZextended(msh)
+        self.__Zpf = fft.fft2(Zext) # keep the FFT of the extedend matrix
+
     #--------------------------------------------
-    
+
     def __computeZmn(self, kb, an, m, n, cm, cn):
         """ Compute an entry for the Z matrix.
             It can be self or off-diagonal entries depending on (m,n).
@@ -41,16 +56,14 @@ class InhomogeneousCylinderKernel(LinearOperator):
             return (1j*pi*kb*an*0.5)*special.j1(kb*an)*special.hankel2(0,kb*dist)
     #--------------------------------------------
 
-
     def assembleZmatRow(self, irow, msh):
         """ Assemble one row of the impedance matrix
         """
-        # an = 
-        # kb = 
 
+        an = msh.an # get the resolution
         Zrow = np.zeros((self.getDoFs()), dtype=np.complex)
         for jcol in range(self.getDoFs()):
-            Zrow[jcol] = self.__computeZmn(kb, an, irow, jcol, msh.cells[irow], msh.cells[jcol])
+            Zrow[jcol] = self.__computeZmn(self.kb, an, irow, jcol, msh.cells[irow], msh.cells[jcol])
 
         return Zrow
     #--------------------------------------------
@@ -66,8 +79,72 @@ class InhomogeneousCylinderKernel(LinearOperator):
         return Zmat
     #--------------------------------------------
 
-    
+    def assembleZextended(self, msh):
+        """ Assemble the Z matrix in a circulant manner
+        """
+        Zrow = self.assembleZmatRow(0, msh)  # first compute a row
+        return self.__extendedZmat(Zrow, self.nx, self.ny)
+    #--------------------------------------------
+
     def getDoFs(self):
         return self.dofs
     #--------------------------------------------
+
+    def __extendedIndex(self, m, Nm):
+        # Calculate the p'index in the circulant matrix
+        if m >= 0 and m <= Nm-1:
+            return m
+        else:
+            return 2*Nm - (m+1)
+    #--------------------------------------------
+
+    def __extendedZmat(self, Zrow_, Nx, Ny):
+        Px = 2*Nx-1
+        Py = 2*Ny-1
+        Zp = np.zeros((Px, Py), dtype=np.complex)
+        Zrow = Zrow_.reshape(Nx, Ny)
+        for p in range(Px):
+            # Calculate the p'index in the circulant matrix
+            pp = self.__extendedIndex(p, Nx)
+            for q in range(Py):
+                # Calculate the q' index in the circulant matrix
+                qq = self.__extendedIndex(q, Ny)
+
+                # Populate the circulant Z
+                Zp[p, q] = Zrow[pp, qq]
+        # Return the circ matrix
+        return Zp
+    #--------------------------------------------
+
+    def __extendedVector(self, v_, Nx, Ny):
+        """ Create an extended vector in a circulant fashion
+        """
+        Px = 2*Nx-1
+        Py = 2*Ny-1
+        vp = np.zeros((Px, Py), dtype=np.complex)
+        v = v_.reshape(Nx, Ny)
+        for p in range(Px):
+            for q in range(Py):
+                if (p >= 0 and p <= Nx-1) and (q >= 0 and q <= Ny-1):
+                    vp[p, q] = v[p, q]
+
+        # return the vector
+        return vp
+    #--------------------------------------------
+
+    def _matvec(self, x):
+        """ This function overloads the matrix-vector product.
+            It implements a FAST A*x operations using the FFT
+        """
+        vp = self.__extendedVector(x, self.nx, self.ny) # circulant vector
+        # Forward FFT
+        vpf = fft.fft2(vp)
+        # Hadamard prod of the FFTs
+        zvf = np.multiply(self.__Zpf, vpf)
+        # Inverse FFT
+        izvf = fft.ifft2(zvf)
+        # Get the vector back from the circulant matrix
+        xzf = izvf[0:self.nx, 0:self.ny]
+        return xzf.reshape(self.nx*self.ny)
+#-----------------------------------------------------------------------------------------
 

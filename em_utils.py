@@ -30,3 +30,10 @@ def get_impedance(epsrc):
     """Given a complex permittivity get the impedance
     """
     return sqrt(mu0/(eps0*epsrc))
+
+def get_dielectric_wavenumber(freq, epsrc):
+    """ Computes the wavenumber within a dielectric.
+        Assuming mur=1
+    """
+    k0 = get_k0(freq)
+    return k0*sqrt(epsrc)

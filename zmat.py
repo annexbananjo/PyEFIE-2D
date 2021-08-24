@@ -1,6 +1,6 @@
 from tqdm import tqdm
 from scipy import special
-from scipy import fft 
+from scipy import fft
 import numpy as np
 from numpy import linalg as LA
 from math import pi, sqrt
@@ -18,7 +18,7 @@ class Cell:
     def __str__ (self):
         return "cell(x=" + str(self.rx) + ", y=" + str(self.ry) + ")" + "\n"
 #--------------------------------------------
-	
+
 
 def distCells(cm, cn):
     """ Compute the distance between two cells
@@ -34,7 +34,7 @@ def testMesh(xmin, xmax, ymin, ymax, Nx, Ny):
     dy = yCoord[1] - yCoord[0]
     Sm = dx*dy
     resolution = sqrt(Sm)/pi
-    
+
     # Set an array of cells
     cells = np.zeros((Nx*Ny), dtype=Cell)
     cnt = 0
@@ -42,7 +42,7 @@ def testMesh(xmin, xmax, ymin, ymax, Nx, Ny):
         for j in range(Ny):
             cells[cnt] = Cell(xCoord[i], yCoord[j])
             cnt = cnt + 1
-    
+
     return resolution, cells
 #--------------------------------------------
 
@@ -75,10 +75,10 @@ def computeFullZ(kb, an, cells):
         Zmat[irow, :] = computeRowZ(kb, an, irow, cells)
     return Zmat
 #--------------------------------------------
-   
+
 
 def extendedIndex(m, Nm):
-    # Calculate the p'index in the circulant matrix 
+    # Calculate the p'index in the circulant matrix
     if m>=0 and m<=Nm-1:
         return m
     else:
@@ -93,12 +93,12 @@ def extendedZmat(Zrow_, Nx, Ny):
     Zp = np.zeros((Px, Py), dtype=np.complex)
     Zrow = Zrow_.reshape(Nx, Ny)
     for p in range(Px):
-        # Calculate the p'index in the circulant matrix 
+        # Calculate the p'index in the circulant matrix
         pp = extendedIndex(p, Nx)
         for q in range(Py):
             # Calculate the q' index in the circulant matrix
             qq = extendedIndex(q, Ny)
-            
+
             # Populate the circulant Z
             Zp[p,q] = Zrow[pp,qq]
     # Return the circ matrix
@@ -116,7 +116,7 @@ def extendedVector(v_, Nx, Ny):
         for q in range(Py):
             if (p>=0 and p <=Nx-1) and (q>=0 and q <=Ny-1):
                 vp[p,q] = v[p,q]
-    
+
     # return the vector
     return vp
 #--------------------------------------------
