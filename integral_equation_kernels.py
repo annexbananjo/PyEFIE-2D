@@ -21,6 +21,8 @@ def computeContrast(epsrcBackground, epsrc):
 
 class InhomogeneousCylinderKernel(LinearOperator):
     """ A class for TM Wave Scattering from Inhomogeneous Dielectric Cylinders: Volume EFIE
+        The Integral Kernel is: A = I + Z*Chi
+            where Chi=diag(chi), and I is diag(1)
     """
 
     def __init__(self, msh, freq, epsrcBackground, epsrc, dtype=np.complex):
@@ -134,17 +136,22 @@ class InhomogeneousCylinderKernel(LinearOperator):
 
     def _matvec(self, x):
         """ This function overloads the matrix-vector product.
-            It implements a FAST A*x operations using the FFT
+            It implements a FAST A*x operations using the FFT.
+            A = I + Z*Chi, then A*x = x + Z*p, where p = chi .* x
         """
-        vp = self.__extendedVector(x, self.nx, self.ny) # circulant vector
+        # Vector FFT operations
+        p = np.multiply(self.chi, x)
+        vp = self.__extendedVector(p, self.nx, self.ny) # circulant vector
         # Forward FFT
         vpf = fft.fft2(vp)
+
         # Hadamard prod of the FFTs
         zvf = np.multiply(self.__Zpf, vpf)
         # Inverse FFT
         izvf = fft.ifft2(zvf)
         # Get the vector back from the circulant matrix
         xzf = izvf[0:self.nx, 0:self.ny]
-        return xzf.reshape(self.nx*self.ny)
+        zl = xzf.reshape(self.nx*self.ny)
+        return x + zl
 #-----------------------------------------------------------------------------------------
 

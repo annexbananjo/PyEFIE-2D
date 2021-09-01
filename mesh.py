@@ -1,6 +1,7 @@
 # Implement class mesh
 import numpy as np
 import matplotlib.pyplot as plt
+from math import pi
 from scipy import spatial
 from tqdm import tqdm
 from point2D import Point2D, compute_distance
@@ -13,7 +14,7 @@ class Mesh():
 
     def __init__(self):
         self.cells = []  # represents a collection of points of the mesh
-        self.an = 0.0  # resolution/2 of the mesh
+        self.an = 0.0  # resolution/pi of the mesh (equivalent circle)
         # key is the pos in the vector of primitiveObj, value is idObj
         self.idBackground = {0: -1}
     #--------------------------------------------
@@ -66,7 +67,8 @@ class Mesh():
     def __createMeshFromBackgroundRectangle(self, rectangle, resolution):
         if resolution == 0.0:
             raise ValueError("Resolution cannot be zero")
-        # We assume that circle is envoloped within an equivalent square
+        self.an = resolution
+        # We assume that rectangle is envoloped within an equivalent square
         xmin = rectangle.pMin.x
         xmax = rectangle.pMax.x
         ymin = rectangle.pMin.y
@@ -87,6 +89,7 @@ class Mesh():
     def generateMesh(self, listPrimitiveObj, resolution):
         """ This function generate the mesh given a list of primitive object
         """
+        self.an = resolution / pi
         if not listPrimitiveObj:
             raise RuntimeError("List of primitive objects is empty")
         print('Found {} primitive objects'.format(len(listPrimitiveObj)))
