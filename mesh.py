@@ -64,6 +64,7 @@ class Mesh():
         plt.show()
     #--------------------------------------------
 
+
     def __createMeshFromBackgroundRectangle(self, rectangle, resolution):
         if resolution == 0.0:
             raise ValueError("Resolution cannot be zero")
@@ -86,26 +87,26 @@ class Mesh():
                 self.cells.append(aPt)
     #--------------------------------------------
 
-    def generateMesh(self, listPrimitiveObj, resolution):
+    def generateMesh(self, vecObj, resolution):
         """ This function generate the mesh given a list of primitive object
         """
         self.an = resolution / pi
-        if not listPrimitiveObj:
+        if not vecObj:
             raise RuntimeError("List of primitive objects is empty")
-        print('Found {} primitive objects'.format(len(listPrimitiveObj)))
+        print('Found {} primitive objects'.format(len(vecObj)))
         # Extract the id for finding the minimu later
         minId = {}
-        for i in range(len(listPrimitiveObj)):
+        for i in range(len(vecObj)):
             try:
-                minId[i].append(listPrimitiveObj[i].getId())
+                minId[i].append(vecObj[i].getId())
             except KeyError:
-                minId[i] = [listPrimitiveObj[i].getId()]
+                minId[i] = [vecObj[i].getId()]
         keyMin = min(minId, key=minId.get)
         self.idBackground = {keyMin: minId[keyMin]}
         # Generate mesh
-        if type(listPrimitiveObj[keyMin]) is Rectangle:
+        if type(vecObj[keyMin]) is Rectangle:
             self.__createMeshFromBackgroundRectangle(
-                listPrimitiveObj[keyMin], resolution)
+                vecObj[keyMin], resolution)
         else:
             raise RuntimeError("Wrong background object")
         # Build the tree

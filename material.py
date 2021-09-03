@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from math import pi
 from object import Object
 from mesh import Mesh
@@ -30,6 +31,7 @@ class Material(Object):
         s2 = '(epsr, sigma): {}; {}'.format(self.epsr, self.sigma)
         s3 = 'epsr complex: {}'.format(self.epsrc)
         return s0 + "\n" + s2 + "\n" + s3
+#--------------------------------------------
 
 
 def set_dielectrics(vecMat, vecFreq, matToFreqMap):
@@ -46,30 +48,72 @@ def set_dielectrics(vecMat, vecFreq, matToFreqMap):
         for m in range(numMat):
             if idMat == vecMat[m].getId():
                 vecMat[m].setPermittivity(freq)
+#--------------------------------------------
 
 
-def set_dielectric_properties_at_cells(msh, vecObj, vecMat, objToMatMap):
-    """ Set the dielectric properties for each cell of the domain
+def set_material_id_at_cells(msh, vecObj, vecMat, objToMatMap):
+    """ At each cell of the domain, set the id of the material associated to 
+        that cell
     """
     numCells = len(msh.cells)
     numObj = len(vecObj)
     numMat = len(vecMat)
     dielectric = np.zeros((numCells), dtype=np.complex)
+
+    # create an array with the ID of the material
+    idBackground = msh.idBackground[0][0]
+    vecMatID = idBackground * np.ones((numCells), dtype=np.int8)
+
     # Start loop over the cell
     for i in range(numCells):
         foundCell = False
         for j in range(numObj):
             if foundCell == True:
                 break
-            if vecObj[j].isInternal(msh.cells[i]) == True:
-                idMat = objToMatMap[vecObj[j].getId()]
-                for m in range(numMat):
-                    if idMat == vecMat[m].getId():
-                        dielectric[i] = vecMat[m].epsrc
-                        foundCell = True
-                        break
-    return dielectric
+            # skip the background obj
+            if vecObj[j].idObj != idBackground:
+                if vecObj[j].isInternal(msh.cells[i]) == True:
+                    idMat = objToMatMap[vecObj[j].getId()]
+                    vecMatID[i] = idMat
+                    foundCell = True # found only one time
+    return vecMatID
+#--------------------------------------------
 
+
+def plot_cells_with_ID(msh, vecMatID):
+        """ Given the mesh and a vector with size numCells, 
+            print the mesh with the material ID associated to each cell
+        """
+        numCells = len(msh.cells)
+        if len(vecMatID) != numCells:
+            raise ValueError("vecMatID is not coherent with the mesh")
+        x = []
+        y = []
+        txt = []
+        for i in range(len(msh.cells)):
+            x.append(msh.cells[i].x)
+            y.append(msh.cells[i].y)
+            txt.append(vecMatID[i])
+        plt.plot(x, y, '.')
+
+        # zip joins x and y coordinates in pairs
+        cnt = 0
+        for xs,ys in zip(x,y):
+            plt.annotate(txt[cnt], # this is the text
+                        (xs,ys), # these are the coordinates to position the label
+                        textcoords="offset points", # how to position the text
+                        xytext=(1,1), # distance from text to points (x,y)
+                        ha='center') # horizontal alignment can be left, right or center
+            cnt+=1
+        plt.show()
+#--------------------------------------------
+
+
+                    # for m in range(numMat):
+                    #     if idMat == vecMat[m].getId():
+                    #         dielectric[i] = vecMat[m].epsrc
+                    #         foundCell = True
+                    #         break
 
 if __name__ == '__main__':
     mat = Material()
