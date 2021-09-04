@@ -1,23 +1,13 @@
 import copy
 import numpy as np
 from tqdm import tqdm
-from scipy import special
+from scipy import special 
 from scipy import fft
 from scipy.sparse.linalg import LinearOperator
 from math import pi
 from point2D import compute_distance
 from em_utils import get_dielectric_wavenumber
-
-def computeContrast(epsrcBackground, epsrc):
-    """ Compute the contrast chi = (epsrc(r) - epsrcBackgroung) / epsrcBackground
-    """
-    N = len(epsrc)
-    chi = np.zeros((N), dtype=np.complex)
-    for i in range(N):
-        chi[i] = (epsrc[i] - epsrcBackground)/ epsrcBackground
-    return chi
-#-----------------------------------------------------------------------------------------
-
+from material import compute_contrast
 
 class InhomogeneousCylinderKernel(LinearOperator):
     """ A class for TM Wave Scattering from Inhomogeneous Dielectric Cylinders: Volume EFIE
@@ -25,7 +15,7 @@ class InhomogeneousCylinderKernel(LinearOperator):
             where Chi=diag(chi), and I is diag(1)
     """
 
-    def __init__(self, msh, freq, epsrcBackground, epsrc, dtype=np.complex):
+    def __init__(self, msh, freq, epsrcBackground, epsrc, assembleFullZ=False, dtype=np.complex):
         """ Init the kernel
         """
         self.dofs = len(msh)
@@ -38,11 +28,15 @@ class InhomogeneousCylinderKernel(LinearOperator):
         self.dtype = dtype
 
         self.kb = get_dielectric_wavenumber(freq, epsrcBackground)  # k of background
-        self.chi = computeContrast(epsrcBackground, epsrc)
+        self.chi = compute_contrast(epsrcBackground, epsrc) # contrast vector
 
         # Compute and store the FFT of the circulant Z-matrix
-        Zext = self.assembleZextended(msh)
+        Zext = self.__assembleZextended(msh)
         self.__Zpf = fft.fft2(Zext) # keep the FFT of the extedend matrix
+
+        # In case requested, assemble the full Z matrix
+        if assembleFullZ:
+            self.Zmat = self.__assembleZmat(msh)
 
     #--------------------------------------------
 
@@ -55,7 +49,7 @@ class InhomogeneousCylinderKernel(LinearOperator):
             return (1j*0.5)*(pi*an*kb*special.hankel2(1, kb*an) -2*1j)
         else: # off-diagonal
             dist = compute_distance(cm, cn)
-            return (1j*pi*kb*an*0.5)*special.j1(kb*an)*special.hankel2(0,kb*dist)
+            return (1j*pi*kb*an*0.5)*special.jv(1,kb*an)*special.hankel2(0,kb*dist)
     #--------------------------------------------
 
     def assembleZmatRow(self, irow, msh):
@@ -70,8 +64,8 @@ class InhomogeneousCylinderKernel(LinearOperator):
         return Zrow
     #--------------------------------------------
 
-    def assembleZmat(self, msh):
-        """ Assemble the impedance matrix
+    def __assembleZmat(self, msh):
+        """ Assemble the impedance matrix (full)
         """
         Zmat = np.zeros((self.getDoFs(), self.getDoFs()), dtype=np.complex)
         print('Assembling the impedance matrix. . .')
@@ -81,7 +75,7 @@ class InhomogeneousCylinderKernel(LinearOperator):
         return Zmat
     #--------------------------------------------
 
-    def assembleZextended(self, msh):
+    def __assembleZextended(self, msh):
         """ Assemble the Z matrix in a circulant manner
         """
         Zrow = self.assembleZmatRow(0, msh)  # first compute a row
@@ -153,5 +147,17 @@ class InhomogeneousCylinderKernel(LinearOperator):
         xzf = izvf[0:self.nx, 0:self.ny]
         zl = xzf.reshape(self.nx*self.ny)
         return x + zl
-#-----------------------------------------------------------------------------------------
+        #--------------------------------------------
 
+    def full_matvec(self, x):
+        """ Compute the mat-vec product using the full matrix
+            Use this function only for testing
+        """
+        if hasattr(self, 'Zmat'):
+            p = np.multiply(self.chi, x)
+            Zp = self.Zmat.dot(p)
+            return x + Zp
+        else:
+            raise Warning("Mat-Vec with Full Zmat: Missing Zmat")
+        #--------------------------------------------
+#-----------------------------------------------------------------------------------------

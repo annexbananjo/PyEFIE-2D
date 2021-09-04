@@ -34,7 +34,7 @@ class Material(Object):
 #--------------------------------------------
 
 
-def set_dielectrics(vecMat, vecFreq, matToFreqMap):
+def __set_dielectrics(vecMat, vecFreq, matToFreqMap):
     """ Modify the materials in order to set the complex permittivity
     """
     numMat = len(vecMat)
@@ -80,6 +80,29 @@ def set_material_id_at_cells(msh, vecObj, vecMat, objToMatMap):
 #--------------------------------------------
 
 
+def set_dielectric_properties_at_cells(vecFreq, matToFreqMap, vecMat, vecMatID):
+    """ Set the dielectric properties at each cell
+    """
+
+    # First set the dielectric properties for the material database
+    __set_dielectrics(vecMat, vecFreq, matToFreqMap)
+
+    numCells = len(vecMatID)
+    numMat = len(vecMat)
+    epsrc = np.zeros((numCells), dtype=np.complex)
+    for i in range(numCells):
+        idMat = vecMatID[i]
+        foundDiel = False
+        for m in range(numMat):
+            if idMat == vecMat[m].getId():
+                epsrc[i] = vecMat[m].epsrc
+                foundDiel = True
+        if foundDiel==False:
+            raise ValueError("Cannot find dielectric in the material database")
+    return epsrc
+#--------------------------------------------
+    
+
 def plot_cells_with_ID(msh, vecMatID):
         """ Given the mesh and a vector with size numCells, 
             print the mesh with the material ID associated to each cell
@@ -108,12 +131,27 @@ def plot_cells_with_ID(msh, vecMatID):
         plt.show()
 #--------------------------------------------
 
+def get_epsrc_background(msh, vecMat):
+    """ Gets the epsrc of the background
+    """
+    numMat = len(vecMat)
+    for m in range(numMat):
+        if msh.idBackground[0][0] == vecMat[m].getId():
+            epsrc = vecMat[m].epsrc
+    return epsrc
+#--------------------------------------------
 
-                    # for m in range(numMat):
-                    #     if idMat == vecMat[m].getId():
-                    #         dielectric[i] = vecMat[m].epsrc
-                    #         foundCell = True
-                    #         break
+
+def compute_contrast(epsrcBackground, epsrc):
+    """ Compute the contrast chi = (epsrc(r) - epsrcBackgroung) / epsrcBackground
+    """
+    N = len(epsrc)
+    chi = np.zeros((N), dtype=np.complex)
+    for i in range(N):
+        chi[i] = (epsrc[i] - epsrcBackground)/ epsrcBackground
+    return chi
+#-----------------------------------------------------------------------------------------
+
 
 if __name__ == '__main__':
     mat = Material()
