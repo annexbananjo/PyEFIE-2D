@@ -147,7 +147,7 @@ class InhomogeneousCylinderKernel(LinearOperator):
         xzf = izvf[0:self.nx, 0:self.ny]
         zl = xzf.reshape(self.nx*self.ny)
         return x + zl
-        #--------------------------------------------
+    #--------------------------------------------
 
     def full_matvec(self, x):
         """ Compute the mat-vec product using the full matrix
@@ -159,5 +159,5 @@ class InhomogeneousCylinderKernel(LinearOperator):
             return x + Zp
         else:
             raise Warning("Mat-Vec with Full Zmat: Missing Zmat")
-        #--------------------------------------------
+    #--------------------------------------------
 #-----------------------------------------------------------------------------------------
