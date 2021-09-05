@@ -15,7 +15,7 @@ class InhomogeneousCylinderKernel(LinearOperator):
             where Chi=diag(chi), and I is diag(1)
     """
 
-    def __init__(self, msh, freq, epsrcBackground, epsrc, assembleFullZ=False, dtype=np.complex):
+    def __init__(self, msh, freq, epsrcBackground, epsrc, assembleFullZ=False):
         """ Init the kernel
         """
         self.dofs = len(msh)
@@ -23,10 +23,8 @@ class InhomogeneousCylinderKernel(LinearOperator):
         self.ny = msh.ny
 
         # Need to extend this from LinearOperator
-        self.explicit = False
-        self.shape = (self.dofs, self.dofs)
-        self.dtype = dtype
-
+        super().__init__(np.complex, (self.dofs, self.dofs))
+        
         self.kb = get_dielectric_wavenumber(freq, epsrcBackground)  # k of background
         self.chi = compute_contrast(epsrcBackground, epsrc) # contrast vector
 
@@ -123,7 +121,6 @@ class InhomogeneousCylinderKernel(LinearOperator):
             for q in range(Py):
                 if (p >= 0 and p <= Nx-1) and (q >= 0 and q <= Ny-1):
                     vp[p, q] = v[p, q]
-
         # return the vector
         return vp
     #--------------------------------------------
@@ -134,13 +131,16 @@ class InhomogeneousCylinderKernel(LinearOperator):
             A = I + Z*Chi, then A*x = x + Z*p, where p = chi .* x
         """
         # Vector FFT operations
+        if x.shape != self.chi.shape:
+            raise RuntimeError("_matvec DIO PORCO")
+
         p = np.multiply(self.chi, x)
         vp = self.__extendedVector(p, self.nx, self.ny) # circulant vector
         # Forward FFT
         vpf = fft.fft2(vp)
 
         # Hadamard prod of the FFTs
-        zvf = np.multiply(self.__Zpf, vpf)
+        zvf = np.multiply(self.__Zpf,vpf)
         # Inverse FFT
         izvf = fft.ifft2(zvf)
         # Get the vector back from the circulant matrix

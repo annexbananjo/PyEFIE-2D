@@ -1,10 +1,12 @@
 # Util functions for pyefie2d
+from excitation import Planewave
 import numpy as np
 import json
 from object import Object
 from point2D import Point2D
 from primitive_objects import Rectangle, Circle
 from material import Material
+from excitation import Planewave
 from frequency import Frequency
 
 
@@ -16,7 +18,7 @@ def factory_rectangle(dictObj):
     pMax = Point2D(dictObj['pmax'][0], dictObj['pmax'][1])
     rectangle = Rectangle(idObj, pMin, pMax)
     return rectangle
-
+#--------------------------------------------
 
 def factory_circle(dictObj):
     """ Create a circle object from parsed json file
@@ -26,7 +28,7 @@ def factory_circle(dictObj):
     radius = dictObj['radius']
     circObj = Circle(idObj, radius, center)
     return circObj
-
+#--------------------------------------------
 
 def factory_material(dictObj):
     """ Create a material object from parsed json file
@@ -36,7 +38,7 @@ def factory_material(dictObj):
     sigma = dictObj['sigma']
     material = Material(idObj, epsr, sigma)
     return material
-
+#--------------------------------------------
 
 def factory_frequency(dictObj):
     """ Create a frequency object from parsed json file
@@ -45,7 +47,15 @@ def factory_frequency(dictObj):
     val = dictObj['val']
     freq = Frequency(idObj, val)
     return freq
+#--------------------------------------------
 
+def factory_planewave(dicObj):
+    numPlws = dicObj['num_plws']
+    startPhi = dicObj['start_phi']
+    endPhi = dicObj['end_phi']
+    plw = Planewave(numPlws, startPhi, endPhi)
+    return plw
+#--------------------------------------------
 
 def create_object_to_material_map(fileJSON):
     """ Given a json file, it creates a map between the object and the material
@@ -61,7 +71,7 @@ def create_object_to_material_map(fileJSON):
                 for obj in data['geometry'][d]:
                     objToMatMap.update({obj['id']: obj['id_mat']})
         return objToMatMap
-
+#--------------------------------------------
 
 def create_material_to_frequency_map(fileJSON):
     """ Given a json file, it creates a map between the material and frequency
@@ -75,7 +85,7 @@ def create_material_to_frequency_map(fileJSON):
         for obj in data['material']:
             matToFreqMap.update({obj['id']: obj['id_freq']})
         return matToFreqMap
-
+#--------------------------------------------
 
 def parse_json(fileJSON):
     """ General function that parses the json file and creates all the maps 
@@ -84,6 +94,7 @@ def parse_json(fileJSON):
     vecObj = []
     vecFreq = []
     vecMat = []
+    vecInc = []
     # Open the JSON file
     with open(fileJSON, 'r') as json_file:
         data = json.load(json_file)
@@ -109,17 +120,24 @@ def parse_json(fileJSON):
         for obj in data['material']:
             mat = factory_material(obj)
             vecMat.append(mat)
-        # Excitation is missing!
+        # Excitation
+        for d in data['excitation']:
+            if d == 'planewave':
+                for obj in data['excitation'][d]:
+                    plw = factory_planewave(obj)
+                    vecInc.append(plw)
+            else:
+                raise ValueError("Wrong excitation")
+
     # Create the maps
     objToMatMap = create_object_to_material_map(fileJSON)
     matToFreqMap = create_material_to_frequency_map(fileJSON)
     # Return all the info
-    return resolution, vecObj, vecFreq, vecMat, objToMatMap, matToFreqMap
+    return resolution, vecObj, vecInc, vecFreq, vecMat, objToMatMap, matToFreqMap
+#--------------------------------------------
 
 
 if __name__ == '__main__':
-    # fileJSON = 'data/ThreeObjects/ThreeObjects.json'
     fileJSON = 'data/PetersonCylinder/PetersonCyl.json'
-    resolution, vecObj, vecFreq, vecMat, objToMatMap, matToFreqMap = parse_json(
+    resolution, vecObj, vecInc, vecFreq, vecMat, objToMatMap, matToFreqMap = parse_json(
         fileJSON)
-    a = 1

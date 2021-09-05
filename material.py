@@ -146,7 +146,7 @@ def compute_contrast(epsrcBackground, epsrc):
     """ Compute the contrast chi = (epsrc(r) - epsrcBackgroung) / epsrcBackground
     """
     N = len(epsrc)
-    chi = np.zeros((N), dtype=np.complex)
+    chi = np.zeros((N,), dtype=np.complex)
     for i in range(N):
         chi[i] = (epsrc[i] - epsrcBackground)/ epsrcBackground
     return chi
