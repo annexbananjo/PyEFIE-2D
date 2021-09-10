@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 from tqdm import tqdm
-from scipy import special 
+from scipy import special
 from scipy import fft
 from scipy.sparse.linalg import LinearOperator
 from math import pi
@@ -24,7 +24,7 @@ class InhomogeneousCylinderKernel(LinearOperator):
 
         # Need to extend this from LinearOperator
         super().__init__(np.complex, (self.dofs, self.dofs))
-        
+
         self.kb = get_dielectric_wavenumber(freq, epsrcBackground)  # k of background
         self.chi = compute_contrast(epsrcBackground, epsrc) # contrast vector
 
@@ -132,7 +132,7 @@ class InhomogeneousCylinderKernel(LinearOperator):
         """
         # Vector FFT operations
         if x.shape != self.chi.shape:
-            raise RuntimeError("_matvec DIO PORCO")
+            raise RuntimeError("_matvec: x and chi must have same shape")
 
         p = np.multiply(self.chi, x)
         vp = self.__extendedVector(p, self.nx, self.ny) # circulant vector

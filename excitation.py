@@ -19,7 +19,7 @@ class Planewave():
         """
         if self.numPlws <=0:
             raise RuntimeError("No. of excitations (planewave) must be > 0")
-        
+
         numCells = len(msh)
         Einc = np.zeros((numCells,self.numPlws), dtype=np.complex)
 
@@ -34,6 +34,6 @@ class Planewave():
                 Einc[j,i] =e0
         return Einc
     #--------------------------------------------
-                
+
 
 
