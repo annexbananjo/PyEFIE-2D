@@ -52,30 +52,28 @@ def __set_dielectrics(vecMat, vecFreq, matToFreqMap):
 
 
 def set_material_id_at_cells(msh, vecObj, vecMat, objToMatMap):
-    """ At each cell of the domain, set the id of the material associated to 
+    """ At each cell of the domain, set the id of the material associated to
         that cell
     """
     numCells = len(msh.cells)
+    if numCells < 2:
+        raise RuntimeError("At least two objects are required")
     numObj = len(vecObj)
     numMat = len(vecMat)
     dielectric = np.zeros((numCells), dtype=np.complex)
 
     # create an array with the ID of the material
     idBackground = msh.idBackground[0][0]
+    if idBackground!=1:
+        raise RuntimeError("ID background must be 1")
     vecMatID = idBackground * np.ones((numCells), dtype=np.int8)
 
-    # Start loop over the cell
-    for i in range(numCells):
-        foundCell = False
-        for j in range(numObj):
-            if foundCell == True:
-                break
-            # skip the background obj
-            if vecObj[j].idObj != idBackground:
-                if vecObj[j].isInternal(msh.cells[i]) == True:
-                    idMat = objToMatMap[vecObj[j].getId()]
-                    vecMatID[i] = idMat
-                    foundCell = True # found only one time
+    # Start loop over the materials
+    for j in range(1,numObj):
+        for i in range(numCells):
+            if vecObj[j].isInternal(msh.cells[i]) == True:
+                idMat = objToMatMap[vecObj[j].getId()]
+                vecMatID[i] = idMat
     return vecMatID
 #--------------------------------------------
 
@@ -101,10 +99,10 @@ def set_dielectric_properties_at_cells(vecFreq, matToFreqMap, vecMat, vecMatID):
             raise ValueError("Cannot find dielectric in the material database")
     return epsrc
 #--------------------------------------------
-    
+
 
 def plot_cells_with_ID(msh, vecMatID):
-        """ Given the mesh and a vector with size numCells, 
+        """ Given the mesh and a vector with size numCells,
             print the mesh with the material ID associated to each cell
         """
         numCells = len(msh.cells)

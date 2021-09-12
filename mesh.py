@@ -38,7 +38,7 @@ class Mesh():
     # Query if a point is within a cell
     def pointInCell(self, robs):
         """ Given an observation point, returns the closest cell and the closest distance
-            to that tet by using the kd-tree
+            to that cell by using the kd-tree
 
             Output:
                 distance to the closest cell

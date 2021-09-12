@@ -1,12 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
+from point2D import Point2D
 
 
 def plot_complex_quantity_on_2D_grid(msh, F, ngridx1=50, ngridx2=50):
     """
     """
-      
+
     numCells = len(msh)
     x1 = []
     x2 = []
@@ -69,3 +70,23 @@ def plot_complex_quantity_on_2D_grid(msh, F, ngridx1=50, ngridx2=50):
     plt.xlabel("(m)")
     plt.ylabel("(m)")
     plt.show()
+#-----------------------------------------------------------------------------------------
+
+def plot_efield_in_points(xp, yp, msh, E):
+    """ Plot the E-fields in the points (xp,yp)
+    """
+    numCells = len(msh)
+    Np = len(xp)
+    N_ = len(yp)
+    if N_!=Np:
+        raise RuntimeError("xp and yp must have same length")
+
+    # Search in the list of points in the mesh
+    Ei = []
+    points = []
+    for i in range(Np):
+        pi = Point2D(xp[i], yp[i])
+        points.append(pi)
+        _,ci = msh.pointInCell(pi)
+        Ei.append(E[ci])
+    return points, Ei

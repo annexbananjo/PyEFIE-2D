@@ -53,7 +53,6 @@ class InhomogeneousCylinderKernel(LinearOperator):
     def assembleZmatRow(self, irow, msh):
         """ Assemble one row of the impedance matrix
         """
-
         an = msh.an # get the resolution
         Zrow = np.zeros((self.getDoFs()), dtype=np.complex)
         for jcol in range(self.getDoFs()):
