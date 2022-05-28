@@ -68,8 +68,10 @@ def create_object_to_material_map(fileJSON):
         # loop over all the geometry entities
         for d in data['geometry']:
             if d == 'circle' or d == 'rectangle':
-                for obj in data['geometry'][d]:
-                    objToMatMap.update({obj['id']: obj['id_mat']})
+                # for obj in data['geometry'][d]:
+                #     objToMatMap.update({obj['id']: obj['id_mat']})
+                obj =data['geometry'][d]
+                objToMatMap.update({obj['id']: obj['id_mat']})
         return objToMatMap
 #--------------------------------------------
 
@@ -82,13 +84,15 @@ def create_material_to_frequency_map(fileJSON):
     with open(fileJSON, 'r') as json_file:
         data = json.load(json_file)
         # loop over all the geometry entities
-        for obj in data['material']:
-            matToFreqMap.update({obj['id']: obj['id_freq']})
+        # for obj in data['material']:
+        #     matToFreqMap.update({obj['id']: obj['id_freq']})
+        obj = data['material']
+        matToFreqMap.update({obj['id']: obj['id_freq']})
         return matToFreqMap
 #--------------------------------------------
 
 def parse_json(fileJSON):
-    """ General function that parses the json file and creates all the maps 
+    """ General function that parses the json file and creates all the maps
     """
     # First loop over the geometry
     vecObj = []
@@ -99,33 +103,50 @@ def parse_json(fileJSON):
     with open(fileJSON, 'r') as json_file:
         data = json.load(json_file)
         # Resolution
-        resolution = data['resolution']
+        resolution = data['solver']['resolution']
+        # print(resolution)
         # Geometry
         for d in data['geometry']:
+            print(d)
             if d == 'circle':
-                for obj in data['geometry'][d]:
-                    circ = factory_circle(obj)
-                    vecObj.append(circ)
+                # for obj in data['geometry'][d]:
+                #     circ = factory_circle(obj)
+                #     vecObj.append(circ)
+                obj = data['geometry'][d]
+                circ = factory_circle(obj)
+                vecObj.append(circ)
             elif d == 'rectangle':
-                for obj in data['geometry'][d]:
-                    rec = factory_rectangle(obj)
-                    vecObj.append(rec)
+                # for obj in data['geometry'][d]:
+                #     rec = factory_rectangle(obj)
+                #     vecObj.append(rec)
+                obj = data['geometry'][d]
+                rec = factory_rectangle(obj)
+                vecObj.append(rec)
             else:
                 raise ValueError("Wrong geometry entity")
         # Frequency
-        for obj in data['frequency']:
-            freq = factory_frequency(obj)
-            vecFreq.append(freq)
+        # for obj in data['solver']['frequency']:
+        #     freq = factory_frequency(obj)
+        #     vecFreq.append(freq)
+        obj =data['solver']['frequency']
+        freq = factory_frequency(obj)
+        vecFreq.append(freq)
         # Material
-        for obj in data['material']:
-            mat = factory_material(obj)
-            vecMat.append(mat)
+        # for obj in data['material']:
+        #     mat = factory_material(obj)
+        #     vecMat.append(mat)
+        obj = data['material']
+        mat = factory_material(obj)
+        vecMat.append(mat)
         # Excitation
         for d in data['excitation']:
             if d == 'planewave':
-                for obj in data['excitation'][d]:
-                    plw = factory_planewave(obj)
-                    vecInc.append(plw)
+                # for obj in data['excitation'][d]:
+                #     plw = factory_planewave(obj)
+                #     vecInc.append(plw)
+                obj = data['excitation'][d]
+                plw = factory_planewave(obj)
+                vecInc.append(plw)
             else:
                 raise ValueError("Wrong excitation")
 
@@ -138,6 +159,7 @@ def parse_json(fileJSON):
 
 
 if __name__ == '__main__':
-    fileJSON = 'data/PetersonCylinder/PetersonCyl.json'
+    fileJSON = r'C:\Users\mgban\Desktop\data\PetersonCylinder\PetersonCyl.json'
+    # fileJSON = 'data/PetersonCylinder/PetersonCyl.json'
     resolution, vecObj, vecInc, vecFreq, vecMat, objToMatMap, matToFreqMap = parse_json(
         fileJSON)
